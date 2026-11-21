@@ -57,5 +57,7 @@ The ESCI dataset is © Amazon.com, Inc. and released under the Apache-2.0 licens
 <https://github.com/amazon-science/esci-data>. This repo downloads it and does not
 redistribute it, apart from a 200-query fixture under `tests/fixtures/` (with NOTICE).
 
+Code is released under the MIT License (see LICENSE).
+
 Reference: Reddy et al., *Shopping Queries Dataset: A Large-Scale ESCI Benchmark for
 Improving Product Search*, 2022, arXiv:2206.06588.

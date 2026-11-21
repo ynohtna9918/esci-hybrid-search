@@ -149,4 +149,5 @@ def load(conn: psycopg.Connection, source: str, *, activate: bool = True) -> str
 | `unit/test_tokenize.py` | single-char tokens kept; stemming `running→run`; stopwords removed; same output for query and doc paths |
 | `unit/test_bm25.py` | on the synthetic 20-product fixture: exact-title query ranks its product 1st; `score_candidates` equals `search` scores for the same ids; OOV query → zeros; corpus hash stable under row shuffles |
 | `unit/test_embed.py` | prefixes applied; output L2 norm = 1 ± 1e-3; resumable sharding (kill after shard 1, rerun, identical final array). Uses a tiny model from `sentence-transformers` test fixtures, or mocks |
+| `gpu/test_embed_precision.py` (SPEC-02.3, marker `gpu`, skipped without CUDA) | CPU fp32 vs GPU fp16 encodings of the same 1,000 passages: min cosine >= 0.999 |
 | `integration/test_pg_load.py` | load the fixture twice → second run is a no-op; HNSW index exists; exactly one active `index_meta` row; canonical queries return ≤ k rows sorted correctly |

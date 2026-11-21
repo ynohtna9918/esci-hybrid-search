@@ -11,11 +11,23 @@ Applies to every module. Section IDs (`SPEC-00.x`) are referenced from code comm
 | Group | Packages (lower-bounded, resolved in `uv.lock`) |
 |---|---|
 | core | `pandas>=2.2`, `pyarrow>=16`, `numpy>=1.26`, `pydantic>=2.7`, `pydantic-settings>=2.3`, `pyyaml>=6` |
-| retrieval | `bm25s>=0.2`, `PyStemmer>=2.2`, `sentence-transformers>=3.0`, `torch>=2.3`, `psycopg[binary,pool]>=3.2`, `pgvector>=0.3` |
+| retrieval | `bm25s>=0.2`, `PyStemmer>=2.2`, `sentence-transformers>=3.0`, `psycopg[binary,pool]>=3.2`, `pgvector>=0.3` |
+| cpu | `torch>=2.11` from the PyTorch CPU index |
+| gpu | `torch>=2.11` from the PyTorch CUDA 13.0 index |
 | service | `fastapi>=0.115`, `uvicorn[standard]>=0.30`, `boto3>=1.35`, `aws-embedded-metrics>=3.2` |
 | infra | `aws-cdk-lib>=2.150`, `constructs>=10`, `cdk-nag>=2.28` |
 | dev | `pytest>=8`, `pytest-asyncio>=0.23`, `hypothesis>=6`, `scikit-learn>=1.5` (metric oracle only), `ruff>=0.6`, `mypy>=1.11`, `moto>=5` |
 
+- `core` is `[project].dependencies`; `retrieval`, `cpu`, `gpu`, `service`, `infra` are
+  `[project.optional-dependencies]` (extras); `dev` is a `[dependency-groups]` group (installed by default).
+- **torch** is never a bare dependency. It comes from exactly one of the extras `cpu` or `gpu`:
+  - `[tool.uv] conflicts = [[{ extra = "cpu" }, { extra = "gpu" }]]` makes them mutually exclusive.
+  - `[tool.uv.sources]` routes `torch` to an explicit index per extra:
+    `cpu` → `https://download.pytorch.org/whl/cpu`, `gpu` → `https://download.pytorch.org/whl/cu130`
+    (both indexes declared with `explicit = true`, so no other package resolves from them).
+  - `retrieval` is always installed together with `cpu` or `gpu`.
+  - Local development (WSL2, RTX 5070, sm_120) uses `uv sync --extra retrieval --extra gpu`.
+    CI (SPEC-08.1) and the Docker image (SPEC-08.4) use `--extra cpu`.
 - `ruff` rules: `E,F,I,B,UP,SIM,RUF`; line length 100. `mypy --strict` on `src/esci_search/`.
 
 ## SPEC-00.2 Configuration
@@ -56,10 +68,19 @@ params:                    # pipeline-specific, validated by the pipeline's para
 ```
 
 - `configs/base.yaml` holds shared defaults merged *under* each experiment (experiment wins).
-- Function: `load_experiment(path: Path) -> ExperimentConfig`. Raises `ConfigError` on unknown
-  keys, a name/file-stem mismatch, or an unknown pipeline.
+- Function: `load_experiment(path: Path, *, base: Path | None = None) -> ExperimentConfig`.
+  `base` defaults to `path.parent.parent / "base.yaml"` (i.e. `configs/base.yaml`); a missing default
+  base file means no defaults, an explicitly passed missing file raises `ConfigError`.
+- Merge rule: mappings merge recursively (experiment wins key by key, so `params` can be partially
+  overridden); scalars and lists from the experiment replace the base value.
+- Raises `ConfigError` on unknown keys (in the experiment or the base), invalid YAML, a name/file-stem
+  mismatch, or an unknown pipeline.
+- Known pipelines: `KNOWN_PIPELINES: Final[frozenset[str]]` in `config.py`, equal to the registry keys of
+  SPEC-03.7. Config loading does not import `retrieval/`; `unit/test_pipeline_registry.py` asserts
+  `set(PIPELINES) == KNOWN_PIPELINES` so the two cannot drift.
+- `split: test` passes schema validation; the guard that restricts it is SPEC-04.6.
 
-## SPEC-00.3 Shared types (`src/esci_search/types.py`)
+## SPEC-00.3 Shared types (`src/esci_search/core_types.py`)
 
 All frozen dataclasses (`@dataclass(frozen=True, slots=True)`):
 
@@ -76,7 +97,8 @@ class RankedList: query_id: int; items: tuple[Scored, ...]   # sorted, see invar
 
 `RankedList` invariant: items are sorted by `score` descending, then by `product_id` ascending,
 and contain no duplicate `product_id`. The constructor `RankedList.from_scores(query_id, scores: Iterable[Scored])`
-enforces this. Direct construction with unsorted items raises `ValueError`.
+enforces this. Direct construction with unsorted items raises `ValueError`. A NaN score raises `ValueError`
+(the order would be undefined).
 
 ## SPEC-00.4 Errors (`src/esci_search/errors.py`)
 
@@ -84,7 +106,7 @@ enforces this. Direct construction with unsorted items raises `ValueError`.
 `RetrievalError`, `DependencyTimeout`, `LeakageError`. Library code raises these, never bare
 `Exception`. CLIs map them to exit code 2 with a one-line message.
 
-## SPEC-00.5 Logging (`src/esci_search/logging.py`)
+## SPEC-00.5 Logging (`src/esci_search/logs.py`)
 
 - `get_logger(name: str) -> logging.Logger`.
 - `configure_logging(json: bool, level: str = "INFO") -> None`. JSON format fields: `ts`, `level`,
@@ -102,10 +124,15 @@ enforces this. Direct construction with unsorted items raises `ValueError`.
 - `tests/unit/`: no network, no Docker, under 60 s total. Marker: none (default).
 - `tests/integration/`: needs `make up-local`. Marker `@pytest.mark.integration`; skipped by `make check`.
 - Tests that need the real downloaded dataset use marker `@pytest.mark.data` (run with `make test-data`).
+- `tests/gpu/`: tests that need a CUDA device (and may download models). Marker `@pytest.mark.gpu`;
+  skipped when `torch.cuda.is_available()` is false; excluded from `make check`; run with `make test-gpu`.
+- `pytest` runs with `--strict-markers`; the markers `integration`, `data`, `gpu` are registered in `pyproject.toml`.
 - `tests/fixtures/mini_esci/`: 200 `ci_dev` queries with their judged products (Apache-2.0 NOTICE
   included) plus a synthetic 20-product set for pure unit tests.
 - Property tests use `hypothesis` for metrics and fusion.
 
 ### Tests for this spec
-- `test_config.py`: unknown key → `ConfigError`; name ≠ stem → `ConfigError`; base merge precedence.
-- `test_types.py`: `from_scores` sorts by score desc then id asc; duplicate ids → `ValueError`.
+- `test_config.py`: unknown key → `ConfigError`; name ≠ stem → `ConfigError`; unknown pipeline → `ConfigError`;
+  base merge precedence (experiment wins, `params` merges recursively).
+- `test_types.py`: `from_scores` sorts by score desc then id asc; duplicate ids → `ValueError`;
+  unsorted direct construction → `ValueError`; NaN score → `ValueError`.

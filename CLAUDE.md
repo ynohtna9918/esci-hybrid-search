@@ -57,5 +57,5 @@ You are helping build `esci-hybrid-search`. Read this file fully before any chan
 
 - Python 3.12, type hints everywhere, `from __future__ import annotations`.
 - Package: `src/esci_search/`. Imports are absolute (`from esci_search.eval import metrics`).
-- Logging: `esci_search.logging.get_logger(__name__)`, JSON in the service, plain text in CLIs.
+- Logging: `esci_search.logs.get_logger(__name__)`, JSON in the service, plain text in CLIs.
 - Docs and code comments in English.

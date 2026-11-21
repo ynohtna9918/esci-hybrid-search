@@ -137,6 +137,8 @@ Exploratory (dev only, labeled as exploratory in every table):
 - **Throughput Q:** the highest constant arrival rate at which p99 ≤ SLO and error rate < 0.5% hold for 5 minutes.
 - **Cache hit rate h:** from the `zipf` scenario; reported as a function of the Zipf exponent $s$ ∈ {0.8, 1.0, 1.2}.
 - **Cost:** DESIGN §8 formula, with unit prices and dates recorded.
+- Offline timings (`timings.json`) measure evaluation throughput on the development GPU and are never
+  reported as service latency.
 
 ## 11. Final evaluation procedure
 
@@ -149,4 +151,6 @@ Exploratory (dev only, labeled as exploratory in every table):
 
 ## 12. Amendments
 
-_None yet._
+| Date | Section | Change | Reason |
+|---|---|---|---|
+| 2026-11-21 | §10 | Added: offline timings (`timings.json`) are evaluation throughput on the development GPU, never service latency. | Pre-experiment clarification (no runs exist yet); see ADR-0008. |
