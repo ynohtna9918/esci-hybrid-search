@@ -1,4 +1,6 @@
-__all__ = [
+"""Exception hierarchy for esci_search."""
+
+__all__ = [  # noqa: RUF022 - order is base class first, per spec
     "EsciError",
     "ConfigError",
     "DataError",
@@ -10,42 +12,31 @@ __all__ = [
 
 
 class EsciError(Exception):
-    """base class for every error this project raises on purpose"""
-
-    pass
+    """Raised when base class for every error this project raises on purpose."""
 
 
 class ConfigError(EsciError):
-    """a config file or setting is invalid"""
-
-    pass
+    """Raised when a config file or setting is invalid."""
 
 
 class DataError(EsciError):
-    """input data is missing, corrupt, or fails validation"""
-
-    pass
+    """Raised when input data is missing, corrupt, or fails validation."""
 
 
 class IndexBuildError(EsciError):
-    """building or loading an index failed"""
-
-    pass
+    """Raised when building or loading an index failed."""
 
 
 class RetrievalError(EsciError):
-    """a retriever or reranker cannot produce a result"""
-
-    pass
+    """Raised when a retriever or reranker cannot produce a result."""
 
 
 class DependencyTimeout(EsciError):
-    """an external dependency (Postgres, DynamoDB, Bedrock) did not answer in time"""
+    """Raised when an external dependency did not answer in time
 
-    pass
+    Covers Postgres, DynamoDB, Bedrock
+    """
 
 
 class LeakageError(EsciError):
-    """code tried to touch the test split outside the final"""
-
-    pass
+    """Raised when code accesses the test split outside the final evaluation."""
