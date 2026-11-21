@@ -10,6 +10,8 @@ Generated or downloaded artifacts are marked _(gen)_. Do not add files outside t
 | `README.md` | overview, headline results (generated block), navigation | 04.5 | W0 |
 | `CLAUDE.md` | working rules for Claude Code | — | W0 |
 | `.gitignore` | ignores data, local env, large dev-run artifacts | — | W0 |
+| `.gitattributes` | line endings (LF), binary data files | — | W1 |
+| `LICENSE` | MIT license for the code | — | W0 |
 | `.env.example` | local env vars template | 00.2, 08.5 | W1 |
 | `pyproject.toml` / `uv.lock` | package metadata, dependency groups, ruff/mypy/pytest config | 00.1 | W1 |
 | `Makefile` | all developer entry points | 08.6 | W1 (grows each phase) |
@@ -38,9 +40,9 @@ Generated or downloaded artifacts are marked _(gen)_. Do not add files outside t
 |---|---|---|---|
 | `__init__.py` | `__version__` | — | W1 |
 | `config.py` | `Settings`, `ExperimentConfig`, `load_experiment` | 00.2 | W1 |
-| `types.py` | `Query`, `Product`, `Scored`, `RankedList`, `GAIN` | 00.3 | W1 |
+| `core_types.py` | `Query`, `Product`, `Scored`, `RankedList`, `GAIN` | 00.3 | W1 |
 | `errors.py` | exception hierarchy | 00.4 | W1 |
-| `logging.py` | logger factory, JSON formatter, request-id context | 00.5 | W1 |
+| `logs.py` | logger factory, JSON formatter, request-id context | 00.5 | W1 |
 | `paths.py` | canonical data/results paths | 00.6 | W1 |
 | `data/__init__.py`, `data/__main__.py` | `make data` CLI | 01.6 | W1 |
 | `data/download.py` | pinned download, LFS guard, checksums | 01.1 | W1 |
@@ -120,7 +122,7 @@ Generated or downloaded artifacts are marked _(gen)_. Do not add files outside t
 
 | File | Spec | Phase |
 |---|---|---|
-| `conftest.py` (markers `integration`, `data`; shared fixtures) | 00.7 | W1 |
+| `conftest.py` (shared fixtures; markers `integration`, `data`, `gpu` registered in `pyproject.toml`) | 00.7 | W1 |
 | `unit/test_config.py`, `unit/test_types.py` | 00 | W1 |
 | `unit/test_text.py`, `unit/test_splits.py`, `unit/test_load_validation.py`, `unit/test_download.py` | 01 | W1 |
 | `unit/test_tokenize.py`, `unit/test_bm25.py` | 02 | W1 |
@@ -132,6 +134,7 @@ Generated or downloaded artifacts are marked _(gen)_. Do not add files outside t
 | `unit/test_api_validation.py`, `unit/test_search_degradation.py`, `unit/test_cache.py`, `unit/test_request_id.py` | 05 | W4 |
 | `unit/test_smoke_script.py` | 08 | W4 |
 | `unit/test_make_query_file.py`, `unit/test_analyze.py` | 07 | W5 |
+| `gpu/test_embed_precision.py` (marker `gpu`) | 02.3 | W2 |
 | `integration/test_pg_load.py`, `integration/test_retrievers_pg.py` | 02, 03 | W2 |
 | `integration/test_service_e2e.py` | 05 | W4 |
 | `data/test_counts.py` | 01 | W1 |
@@ -152,7 +155,7 @@ Generated or downloaded artifacts are marked _(gen)_. Do not add files outside t
 |---|---|---|
 | `PRFAQ.md`, `DESIGN.md`, `EVAL_PROTOCOL.md`, `ROADMAP.md`, `FILE_MANIFEST.md` | specs and plan | W0 |
 | `specs/00-conventions.md` … `specs/08-ci-cd-build.md` | module specs | W0 |
-| `adr/0000-template.md`, `adr/0001` … `adr/0007` | decisions (some completed with measurements in W2–W3) | W0 |
+| `adr/0000-template.md`, `adr/0001` … `adr/0008` | decisions (some completed with measurements in W2–W3) | W0 |
 | `AI_USAGE.md` | log of AI-generated code that was caught wrong, and how | W0, ongoing |
 | `DATA_CARD.md` _(gen)_ | dataset statistics | W1 |
 

@@ -6,12 +6,13 @@ Triggers: push to `main`, every pull request. `concurrency: ci-${{ github.ref }}
 
 | Job | Runner | Steps |
 |---|---|---|
-| `check` | `ubuntu-24.04` | `uv sync --frozen` → `ruff check` → `ruff format --check` → `mypy` → `pytest -m "not integration and not data"` |
+| `check` | `ubuntu-24.04` | `uv sync --frozen --extra retrieval --extra cpu` → `ruff check` → `ruff format --check` → `mypy` → `pytest -m "not integration and not data and not gpu"` |
 | `integration` | `ubuntu-24.04` | service containers `pgvector/pgvector:pg17` (health: `pg_isready`) and `amazon/dynamodb-local` → apply the schema → `pytest -m integration` |
 | `infra` | `ubuntu-24.04` | `npm i -g aws-cdk@2` → `cdk synth` with dummy context → `pytest infra/tests` |
 | `loadtest-lint` | `ubuntu-24.04` | `k6 inspect loadtest/k6/search.js` |
 | `eval-gate` | `ubuntu-24.04` | SPEC-08.2 |
 
+Every CI job that installs torch uses `--extra cpu`, never `--extra gpu` (SPEC-00.1).
 Caches: uv cache; the HuggingFace cache keyed on model names (for `eval-gate`).
 All third-party actions are pinned to commit SHAs.
 
@@ -45,7 +46,8 @@ All third-party actions are pinned to commit SHAs.
 ## SPEC-08.4 Container image (`Dockerfile`, `.dockerignore`)
 
 - Multi-stage; base `python:3.12-slim-bookworm` pinned by digest; `linux/arm64`.
-- Install the core + retrieval + service groups with `uv sync --frozen --no-dev` (torch from PyPI aarch64 wheels, which are CPU-only).
+- Install core + retrieval + service with `uv sync --frozen --no-dev --extra retrieval --extra service --extra cpu`
+  (torch from the PyTorch CPU index, SPEC-00.1).
 - **Models baked in at build time:** `python -m esci_search.service.prefetch_models --dest /models` downloads
   `intfloat/e5-small-v2` and `cross-encoder/ms-marco-MiniLM-L-12-v2` at pinned HF revisions;
   runtime sets `HF_HUB_OFFLINE=1` and `HF_HOME=/models`. Startup never touches the network for models.
@@ -68,9 +70,10 @@ All third-party actions are pinned to commit SHAs.
 
 | Target | Command(s) |
 |---|---|
-| `check` | `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not integration and not data"` |
+| `check` | `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not integration and not data and not gpu"` |
 | `test` | `check` + `uv run pytest -m integration` |
 | `test-data` | `uv run pytest -m data` |
+| `test-gpu` | `uv run pytest -m gpu` (needs `uv sync --extra retrieval --extra gpu`) |
 | `up-local` / `down-local` | SPEC-08.5 / `docker compose down` |
 | `data` | `uv run python -m esci_search.data` |
 | `index` | `uv run python -m esci_search.index all` |
