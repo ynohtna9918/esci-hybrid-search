@@ -1,0 +1,31 @@
+# Local services for development and integration tests (SPEC-08.5).
+# Start: make up-local    Stop: make down-local    Wipe the database: docker compose down -v
+name: esci-hybrid-search
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: esci
+      POSTGRES_PASSWORD: esci          # local only; never reuse in the cloud
+      POSTGRES_DB: esci
+    command: ["postgres", "-c", "shared_buffers=1GB", "-c", "maintenance_work_mem=2GB"]
+    shm_size: 1g                       # parallel index builds use /dev/shm (Docker default: 64 MB)
+    ports:
+      - "127.0.0.1:5432:5432"          # bind to localhost only, not your whole network
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U esci -d esci"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  dynamodb:
+    image: amazon/dynamodb-local
+    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    ports:
+      - "127.0.0.1:8001:8000"
+
+volumes:
+  pgdata:

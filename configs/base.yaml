@@ -1,0 +1,3 @@
+# Shared defaults merged UNDER every experiment file (SPEC-00c §3.4).
+# Allowed keys: tracks, split, seed, params. On conflict, the experiment file wins.
+seed: 42
